@@ -1,0 +1,47 @@
+---
+import { useEffect, useState } from 'react';
+import { useSorobanClient } from '../layouts/Layout';
+import { Crowdfunding } from '../contracts/crowdfunding_contract';
+
+const { id } = Astro.props;
+
+const [campaign, setCampaign] = useState(null);
+
+useEffect(() => {
+  async function fetchCampaign() {
+    const client = useSorobanClient();
+    const campaignData = await Crowdfunding.query(client, { id });
+    setCampaign(campaignData);
+  }
+
+  fetchCampaign();
+}, [id]);
+---
+
+{ campaign && (
+  <div class="card">
+    <h2>{campaign.description}</h2>
+    <p>
+      Funding goal: {campaign.funding_goal} XLM
+      <br />
+      Current funds: {campaign.current_funds} XLM
+    </p>
+    <button data-donate={`${campaign.id}`}>Donate</button>
+  </div>
+)}
+
+<style>
+  .card {
+    border: 1px solid #ccc;
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  button {
+    background-color: #007bff;
+    border: none;
+    color: white;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+  }
+</style>

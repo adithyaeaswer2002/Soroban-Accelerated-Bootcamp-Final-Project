@@ -1,0 +1,81 @@
+---
+import Layout from '../layouts/Layout';
+import { useEffect, useState } from 'react';
+import { useSorobanClient } from '../layouts/Layout';
+import { Crowdfunding } from '../contracts/crowdfunding_contract';
+
+const [campaigns, setCampaigns] = useState([]);
+const [creatingCampaign, setCreatingCampaign] = useState(false);
+const [newCampaignDescription, setNewCampaignDescription] = useState('');
+const [newCampaignFundingGoal, setNewCampaignFundingGoal] = useState(0);
+
+useEffect(() => {
+  async function fetchCampaigns() {
+    const client = useSorobanClient();
+    const campaignIds = await Crowdfunding.list(client);
+    const campaignsData = await Promise.all(
+      campaignIds.map((id) => Crowdfunding.query(client, { id }))),
+    );
+    setCampaigns(campaignsData);
+  }
+
+  fetchCampaigns();
+}, []);
+
+async function createCampaign() {
+  setCreatingCampaign(true);
+
+  const client = useSorobanClient();
+  const campaign = await Crowdfunding.new(client, {
+    description: newCampaignDescription,
+    funding_goal: newCampaignFundingGoal,
+  });
+
+  setCampaigns([...campaigns, campaign]);
+  setNewCampaignDescription('');
+  setNewCampaignFundingGoal(0);
+  setCreatingCampaign(false);
+}
+
+async function donate(id, amount) {
+  const client = useSorobanClient();
+  await Crowdfunding.donate(client, { id, amount });
+
+  const campaignIndex = campaigns.findIndex((campaign) => campaign.id === id);
+  const campaign = campaigns[campaignIndex];
+  campaign.current_funds += amount;
+  setCampaigns([...campaigns.slice(0, campaignIndex), campaign, ...campaigns.slice(campaignIndex + 1)]);
+}
+---
+
+<Layout>
+  { creatingCampaign && <p>Creating campaign...</p> }
+
+  <h1>Crowdfunding Platform</h1>
+
+  <form>
+    <label>
+      Description:
+      <input
+        type="text"
+        value={newCampaignDescription}
+        onInput={(event) => setNewCampaignDescription(event.target.value)}
+      />
+    </label>
+    <br />
+    <label>
+      Funding goal (XLM):
+      <input
+        type="number"
+        value={newCampaignFundingGoal}
+        onInput={(event) => setNewCampaignFundingGoal(event.target.value)}
+      />
+    </label>
+    <br />
+    <button type="button" onClick={createCampaign}>Create Campaign</button>
+  </form>
+
+  { campaigns.map((campaign) => (
+    <Card id={campaign.id} onDonate={(amount) => donate(campaign.id, amount)} />
+  )) }
+</Layout>

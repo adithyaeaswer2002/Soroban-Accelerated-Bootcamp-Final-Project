@@ -1,0 +1,41 @@
+---
+import React, { createContext, useEffect, useState } from 'react';
+import { SorobanClient } from 'soroban-client';
+import { useContracts } from './utils';
+
+const SorobanContext = createContext(null);
+
+function Layout({ children }) {
+  const [client, setClient] = useState(null);
+  const contracts = useContracts();
+
+  useEffect(() => {
+    async function createClient() {
+      const client = new SorobanClient({
+        url: import.meta.env.PUBLIC_SOROBAN_RPC_URL,
+        network: import.meta.env.PUBLIC_SOROBAN_NETWORK_PASSPHRASE,
+      });
+      setClient(client);
+    }
+
+    createClient();
+  }, []);
+
+  return (
+    <SorobanContext.Provider value={{ client, contracts }}>
+      <div class="container">{children}</div>
+    </SorobanContext.Provider>
+  );
+}
+
+export default Layout;
+export { SorobanContext, SorobanContext as useSorobanClient };
+---
+
+<style>
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 1rem;
+  }
+</style>
